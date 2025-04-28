@@ -7,7 +7,7 @@ exports.createPost = async (userId, title, content) => {
   const query = `
     INSERT INTO posts (user_id, title, content)
     VALUES ($1, $2, $3)
-    RETURNING id
+    RETURNING *
   `;
   const values = [userId, title, content];
   const result = await db.query(query, values);
@@ -17,10 +17,10 @@ exports.createPost = async (userId, title, content) => {
 // GET all Posts
 exports.getAllPosts = async () => {
   const query = `
-    SELECT posts.*, users.username
+    SELECT posts.id, posts.title, posts.content, posts.created_at, users.username
     FROM posts
     JOIN users ON posts.user_id = users.id
-    ORDER BY created_at DESC
+    ORDER BY posts.created_at DESC
   `;
   const result = await db.query(query);
   return result.rows;
@@ -30,7 +30,7 @@ exports.getAllPosts = async () => {
 exports.updatePost = async (postId, title, content) => {
   const query = `
     UPDATE posts
-    SET title = $1, content = $2
+    SET title = $1, content = $2, updated_at = NOW()
     WHERE id = $3
     RETURNING *
   `;
@@ -48,15 +48,16 @@ exports.deletePost = async (postId) => {
   await db.query(query, [postId]);
 };
 
-// SEARCH Posts by keyword
+// SEARCH Posts by keyword (ILIKE for case-insensitive)
 exports.searchPosts = async (keyword) => {
   const query = `
-    SELECT posts.*, users.username
+    SELECT posts.id, posts.title, posts.content, posts.created_at, users.username
     FROM posts
     JOIN users ON posts.user_id = users.id
-    WHERE title ILIKE $1 OR content ILIKE $1
-    ORDER BY created_at DESC
+    WHERE posts.title ILIKE $1 OR posts.content ILIKE $1
+    ORDER BY posts.created_at DESC
   `;
-  const result = await db.query(query, [`%${keyword}%`]);
+  const values = [`%${keyword}%`];
+  const result = await db.query(query, values);
   return result.rows;
 };

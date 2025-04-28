@@ -2,63 +2,90 @@
 
 const { hashPassword, comparePasswords } = require('../utils/hashing');
 const userModel = require('../models/userModel');
-const speakeasy = require('speakeasy');
+const transporter = require('../utils/email'); // NEW: Nodemailer transporter
+const path = require('path');
+
+// Temporary storage for 2FA codes
+const loginCodes = {};
 
 // REGISTER USER
 exports.registerUser = async (req, res) => {
   const { username, password, email } = req.body;
   const hashed = await hashPassword(password);
-  const secret = speakeasy.generateSecret({ length: 20 });
 
   try {
     // Try to save user
-    const newUser = await userModel.createUser(username, hashed, email, secret.base32);
+    const newUser = await userModel.createUser(username, hashed, email);
 
     // Save session and redirect
     req.session.userId = newUser.id;
+    req.session.username = username; 
     res.redirect('/auth/dashboard');
 
   } catch (err) {
     if (err.code === '23505') {
       // PostgreSQL error code for UNIQUE violation
-      return res.status(400).send('Username already exists. Please choose another.');
+      return res.status(400).send('Username or email already exists. Please choose another.');
     }
     console.error(err);
     res.status(500).send('Server error. Please try again.');
   }
 };
 
-// LOGIN USER
+// LOGIN USER (Step 1)
 exports.loginUser = async (req, res) => {
-  const { username, password, token } = req.body;
+  const { username, password } = req.body;
 
-  // Find user from hardcoded users
-  const user = testUsers.find(u => u.username === username);
+  const user = await userModel.findUserByUsername(username);
 
   if (!user) {
     return res.status(400).send('Invalid username or password');
   }
 
-  if (password !== user.password) {
+  const passwordMatch = await comparePasswords(password, user.password);
+
+  if (!passwordMatch) {
     return res.status(400).send('Invalid username or password');
   }
 
-  // Verify 2FA code
-  const verified = speakeasy.totp.verify({
-    secret: user.twofa_secret,
-    encoding: 'base32',
-    token: token
-  });
+  // Password correct, generate random 6-digit code
+  const code = Math.floor(100000 + Math.random() * 900000);
 
-  if (!verified) {
-    return res.status(400).send('Invalid authentication code');
+  // Save code temporarily
+  loginCodes[username] = code;
+
+  // Send email with code
+  try {
+    await transporter.sendMail({
+      from: `"Secure Blog" <${process.env.GMAIL_USER}>`,
+      to: user.email,
+      subject: 'Your 2FA Login Code',
+      text: `Your 2FA login code is: ${code}`
+    });
+
+    // Redirect user to enter the code
+    res.render('verify', { username, csrfToken: req.csrfToken() });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Error sending email. Please try again.');
   }
+};
 
-  // Set session
-  req.session.userId = user.id;
+// VERIFY 2FA CODE (Step 2)
+exports.verify2FA = async (req, res) => {
+  const { username, code } = req.body;
 
-  // Redirect to dashboard
-  res.redirect('/auth/dashboard');
+  if (parseInt(code) === loginCodes[username]) {
+    // Success
+    const user = await userModel.findUserByUsername(username);
+    req.session.userId = user.id;
+    delete loginCodes[username]; // Clean up
+    req.session.username = user.username; 
+    res.redirect('/auth/dashboard');
+  } else {
+    return res.status(400).send('Invalid 2FA code. Please try again.');
+  }
 };
 
 // LOGOUT USER
@@ -86,12 +113,5 @@ exports.dashboard = (req, res) => {
   if (!req.session.userId) {
     return res.status(401).send('Unauthorized: Please login first.');
   }
-  res.render('dashboard');
+  res.render('dashboard', { username: req.session.username });
 };
-
-
-// Temporary hardcoded users
-const testUsers = [
-  { id: 1, username: 'admin', password: 'password123', twofa_secret: 'KZXW6ZBAON2GK3TJ' },
-  { id: 2, username: 'john', password: 'secret456', twofa_secret: 'MRUW63LFEB3GK3TP' }
-];

@@ -2,7 +2,6 @@
 
 require('dotenv').config(); // Always load environment variables FIRST
 
-
 const express = require('express');
 const session = require('express-session');
 const csrf = require('csurf');
@@ -13,10 +12,12 @@ const morgan = require('morgan');
 const db = require('./utils/db');
 
 const app = express();
+
+// View engine setup
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// If you're behind a proxy (e.g., in production), trust it for secure cookies
+// If you're behind a proxy (e.g., production), trust it for secure cookies
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
@@ -40,13 +41,13 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
   store: new pgSession({
     pool: db,
-    tableName: 'session'
+    tableName: 'session' // Your session table
   }),
-  secret: process.env.SESSION_SECRET,  // <-- Must provide secret
+  secret: process.env.SESSION_SECRET,  // Must provide secret
   resave: false,
   saveUninitialized: false,
   cookie: {
-    maxAge: 1000 * 60 * 15,    // 15 minutes
+    maxAge: 1000 * 60 * 15, // 15 minutes
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: 'lax'
@@ -58,12 +59,25 @@ app.use(csrf());
 
 // ─── Routes ─────────────────────────────────────────────────────────
 
-// Health check
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const postRoutes = require('./routes/postRoutes');
+
+// Mount auth routes first
+app.use('/auth', authRoutes);
+
+// 🚀 Home Page Route (before post routes)
 app.get('/', (req, res) => {
-  res.send(`📝 Blog backend up and running — your CSRF token is: ${req.csrfToken()}`);
+  if (req.session.userId) {
+    return res.redirect('/auth/dashboard');
+  }
+  res.render('home'); // Render home.ejs
 });
 
-// Quick DB-connect test
+// Mount post routes second
+app.use('/', postRoutes);
+
+// Quick DB-connect test (optional)
 app.get('/db-test', async (req, res, next) => {
   try {
     const { rows } = await db.query('SELECT NOW()');
@@ -73,16 +87,9 @@ app.get('/db-test', async (req, res, next) => {
   }
 });
 
-// Mount routes
-const authRoutes = require('./routes/authRoutes');
-const postRoutes = require('./routes/postRoutes');
-
-app.use('/auth', authRoutes);
-app.use('/', postRoutes);
-
 // ─── Error Handling ─────────────────────────────────────────────────
 
-// CSRF token errors — respond with 403
+// CSRF token errors
 app.use((err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN') {
     return res.status(403).send('Invalid CSRF token');
@@ -90,12 +97,12 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
-// 404 for anything not matched
+// 404 Not Found
 app.use((req, res) => {
   res.status(404).send('Not Found');
 });
 
-// Global error handler for any other server errors
+// Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something went wrong');
