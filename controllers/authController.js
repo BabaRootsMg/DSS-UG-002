@@ -66,3 +66,23 @@ exports.logout = (req, res) => {
     res.send('Logged out successfully.');
   });
 };
+
+const path = require('path');
+
+// Show Register Page
+exports.showRegister = (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/register.html'));
+};
+
+// Show Login Page
+exports.showLogin = (req, res) => {
+  res.sendFile(path.join(__dirname, '../views/login.html'));
+};
+
+// Show Dashboard Page (protected)
+exports.dashboard = (req, res) => {
+  if (!req.session.userId) {
+    return res.status(401).send('Unauthorized: Please login first.');
+  }
+  res.sendFile(path.join(__dirname, '../views/dashboard.html'));
+};

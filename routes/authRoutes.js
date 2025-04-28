@@ -1,17 +1,19 @@
-// routes/authRoutes.js
-
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
+const { isAuthenticated } = require('../middleware/authMiddleware'); // <-- Import middleware
 
 // Registration and login routes
 router.post('/register', authController.registerUser);
 router.post('/login', authController.loginUser);
 
-// 🔥 Dashboard route (only for logged-in users)
-router.get('/dashboard', authController.dashboard);
+// Protect dashboard route!
+router.get('/dashboard', isAuthenticated, authController.dashboard);
 
-module.exports = router;
+router.get('/logout', authController.logout); // Optional
 
-// In authRoutes.js
+
+router.get('/register', authController.showRegister);
+router.get('/login', authController.showLogin);
+router.get('/dashboard', isAuthenticated, authController.dashboard);
 router.get('/logout', authController.logout);
