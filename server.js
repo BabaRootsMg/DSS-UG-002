@@ -1,4 +1,6 @@
 // server.js
+
+
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
@@ -6,7 +8,8 @@ const csrf = require('csurf');
 const pgSession = require('connect-pg-simple')(session);
 const path = require('path');
 const db = require('./utils/db'); // We'll also create a basic db.js for now
-
+const helmet = require('helmet');
+const morgan = require('morgan');
 const app = express();
 
 // If you're behind a proxy (e.g. in production), trust it for secure cookies
