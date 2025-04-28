@@ -3,16 +3,14 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { isAuthenticated } = require('../middleware/authMiddleware');
 
-// ─── View Pages (GET Forms) ──────────────────────────────────────────
+// Pages (GET)
+router.get('/register', authController.showRegister);
+router.get('/login', authController.showLogin);
+router.get('/dashboard', isAuthenticated, authController.dashboard);
+router.get('/logout', authController.logout);
 
-router.get('/register', authController.showRegister);   // Show registration form
-router.get('/login', authController.showLogin);         // Show login form
-router.get('/dashboard', isAuthenticated, authController.dashboard); // Show dashboard (protected)
-router.get('/logout', authController.logout);           // Logout user
-
-// ─── Handle Form Submissions (POST) ──────────────────────────────────
-
-router.post('/register', authController.registerUser);  // Handle register form submit
-router.post('/login', authController.loginUser);        // Handle login form submit
+// Forms (POST)
+router.post('/register', authController.registerUser);
+router.post('/login', authController.loginUser);
 
 module.exports = router;
