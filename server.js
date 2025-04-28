@@ -2,6 +2,7 @@
 
 require('dotenv').config(); // Always load environment variables FIRST
 
+
 const express = require('express');
 const session = require('express-session');
 const csrf = require('csurf');
@@ -12,6 +13,8 @@ const morgan = require('morgan');
 const db = require('./utils/db');
 
 const app = express();
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
 // If you're behind a proxy (e.g., in production), trust it for secure cookies
 if (process.env.NODE_ENV === 'production') {

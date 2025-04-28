@@ -1,7 +1,8 @@
+// controllers/authController.js
+
 const { hashPassword, comparePasswords } = require('../utils/hashing');
 const userModel = require('../models/userModel');
 const speakeasy = require('speakeasy');
-const path = require('path');
 
 // REGISTER USER
 exports.registerUser = async (req, res) => {
@@ -11,28 +12,32 @@ exports.registerUser = async (req, res) => {
   // Generate a 2FA secret for the user
   const secret = speakeasy.generateSecret({ length: 20 });
 
-  // Save to database (username, hashed password, email, and 2FA secret)
-  await userModel.createUser(username, hashed, email, secret.base32);
+  // Save to database
+  const newUser = await userModel.createUser(username, hashed, email, secret.base32);
 
-  res.send('Registration successful!');
+  // Create session
+  req.session.userId = newUser.id;
+
+  // Redirect to dashboard
+  res.redirect('/auth/dashboard');
 };
 
 // LOGIN USER
 exports.loginUser = async (req, res) => {
   const { username, password, token } = req.body;
-  const user = await userModel.findUserByUsername(username);
+
+  // Find user from hardcoded users
+  const user = testUsers.find(u => u.username === username);
 
   if (!user) {
     return res.status(400).send('Invalid username or password');
   }
 
-  const passwordMatch = await comparePasswords(password, user.password);
-
-  if (!passwordMatch) {
+  if (password !== user.password) {
     return res.status(400).send('Invalid username or password');
   }
 
-  // Now verify the 2FA token
+  // Verify 2FA code
   const verified = speakeasy.totp.verify({
     secret: user.twofa_secret,
     encoding: 'base32',
@@ -43,10 +48,11 @@ exports.loginUser = async (req, res) => {
     return res.status(400).send('Invalid authentication code');
   }
 
-  // Save user session
+  // Set session
   req.session.userId = user.id;
 
-  res.send('Login successful');
+  // Redirect to dashboard
+  res.redirect('/auth/dashboard');
 };
 
 // LOGOUT USER
@@ -61,12 +67,12 @@ exports.logout = (req, res) => {
 
 // Show Register Form Page
 exports.showRegister = (req, res) => {
-  res.sendFile(path.join(__dirname, '../views/register.html'));
+  res.render('register', { csrfToken: req.csrfToken() });
 };
 
 // Show Login Form Page
 exports.showLogin = (req, res) => {
-  res.sendFile(path.join(__dirname, '../views/login.html'));
+  res.render('login', { csrfToken: req.csrfToken() });
 };
 
 // Show Dashboard Page (protected)
@@ -74,5 +80,12 @@ exports.dashboard = (req, res) => {
   if (!req.session.userId) {
     return res.status(401).send('Unauthorized: Please login first.');
   }
-  res.sendFile(path.join(__dirname, '../views/dashboard.html'));
+  res.render('dashboard');
 };
+
+
+// Temporary hardcoded users
+const testUsers = [
+  { id: 1, username: 'admin', password: 'password123', twofa_secret: 'KZXW6ZBAON2GK3TJ' },
+  { id: 2, username: 'john', password: 'secret456', twofa_secret: 'MRUW63LFEB3GK3TP' }
+];
