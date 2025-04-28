@@ -8,18 +8,24 @@ const speakeasy = require('speakeasy');
 exports.registerUser = async (req, res) => {
   const { username, password, email } = req.body;
   const hashed = await hashPassword(password);
-
-  // Generate a 2FA secret for the user
   const secret = speakeasy.generateSecret({ length: 20 });
 
-  // Save to database
-  const newUser = await userModel.createUser(username, hashed, email, secret.base32);
+  try {
+    // Try to save user
+    const newUser = await userModel.createUser(username, hashed, email, secret.base32);
 
-  // Create session
-  req.session.userId = newUser.id;
+    // Save session and redirect
+    req.session.userId = newUser.id;
+    res.redirect('/auth/dashboard');
 
-  // Redirect to dashboard
-  res.redirect('/auth/dashboard');
+  } catch (err) {
+    if (err.code === '23505') {
+      // PostgreSQL error code for UNIQUE violation
+      return res.status(400).send('Username already exists. Please choose another.');
+    }
+    console.error(err);
+    res.status(500).send('Server error. Please try again.');
+  }
 };
 
 // LOGIN USER
