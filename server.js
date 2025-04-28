@@ -4,10 +4,11 @@ require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const csrf = require('csurf');
-const pgSession = require('connect-pg-simple')(session);
 const path = require('path');
-const db = require('./utils/db'); // We'll also create a basic db.js for now
-
+// const pgSession = require('connect-pg-simple')(session);
+// const db = require('./utils/db');
+const authRoutes = require('./routes/authRoutes');
+app.use('/auth', authRoutes);
 const app = express();
 
 // Body Parser Middleware
@@ -17,12 +18,8 @@ app.use(express.json());
 // Static Folder (optional)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Session Middleware
+// Session Middleware (MemoryStore for now, no database)
 app.use(session({
-  store: new pgSession({
-    pool: db, // Connection pool
-    tableName: 'session' // You can customize table name if you want
-  }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
