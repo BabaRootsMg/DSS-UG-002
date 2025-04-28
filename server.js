@@ -1,13 +1,11 @@
 // server.js
 require('dotenv').config();
-const express       = require('express');
-const session       = require('express-session');
-const csrf          = require('csurf');
-const pgSession     = require('connect-pg-simple')(session);
-const path          = require('path');
-const helmet        = require('helmet');
-const morgan        = require('morgan');
-const db            = require('./utils/db'); // see utils/db.js below
+const express = require('express');
+const session = require('express-session');
+const csrf = require('csurf');
+const pgSession = require('connect-pg-simple')(session);
+const path = require('path');
+const db = require('./utils/db'); // We'll also create a basic db.js for now
 
 const app = express();
 
@@ -31,12 +29,11 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static assets from /public
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Session + CSRF Middleware ──────────────────────────────────────
-
+// Session Middleware
 app.use(session({
   store: new pgSession({
-    pool: db,               // your pg Pool
-    tableName: 'session'    // defaults to 'session'
+    pool: db, // Connection pool
+    tableName: 'session' // You can customize table name if you want
   }),
   secret: process.env.SESSION_SECRET,
   resave: false,
