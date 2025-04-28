@@ -71,6 +71,31 @@ app.get('/db-test', async (req, res, next) => {
 
 // (Here is where you’ll mount your routes for /posts, /auth, etc.)
 
+
+// Mount routes
+const authRoutes = require('./routes/authRoutes');
+app.use('/auth', authRoutes);
+
+// CSRF token errors
+app.use((err, req, res, next) => {
+  if (err.code === 'EBADCSRFTOKEN') {
+    return res.status(403).send('Invalid CSRF token');
+  }
+  next(err);
+});
+
+// 404 for anything else
+app.use((req, res) => {
+  res.status(404).send('Not Found');
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send('Something went wrong');
+});
+
+
 // ─── 404 & Error Handling ───────────────────────────────────────────
 
 // CSRF token errors — respond with 403

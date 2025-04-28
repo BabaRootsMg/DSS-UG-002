@@ -1,7 +1,3 @@
-exports.isAuthenticated = (req, res, next) => {
-    if (req.session.userId) {
-      next(); // user is authenticated
-    } else {
-      res.status(401).send('Unauthorized: Please log in.');
-    }
-  };
+const { isAuthenticated } = require('../middleware/authMiddleware');
+
+router.get('/dashboard', isAuthenticated, authController.dashboard);

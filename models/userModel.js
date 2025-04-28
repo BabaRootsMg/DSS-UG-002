@@ -1,6 +1,6 @@
 // models/userModel.js
 
-const db = require('../../../../Desktop/DSS-UG-002/utils/db');
+const db = require('../utils/db');
 
 exports.createUser = async (username, password, email, twofa_secret) => {
   const query = `

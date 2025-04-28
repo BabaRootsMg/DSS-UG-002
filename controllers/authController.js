@@ -1,6 +1,7 @@
 const { hashPassword, comparePasswords } = require('../utils/hashing');
 const userModel = require('../models/userModel');
 const speakeasy = require('speakeasy');
+const path = require('path');
 
 // REGISTER USER
 exports.registerUser = async (req, res) => {
@@ -33,7 +34,7 @@ exports.loginUser = async (req, res) => {
 
   // Now verify the 2FA token
   const verified = speakeasy.totp.verify({
-    secret: user.twofa_secret, // user must have a 2FA secret saved
+    secret: user.twofa_secret,
     encoding: 'base32',
     token: token
   });
@@ -48,16 +49,7 @@ exports.loginUser = async (req, res) => {
   res.send('Login successful');
 };
 
-// CONTROLLER: Dashboard
-exports.dashboard = (req, res) => {
-  if (!req.session.userId) {
-    return res.status(401).send('Unauthorized: Please login first.');
-  }
-
-  res.send(`Welcome to your dashboard! Your session is active.`);
-};
-
-// In authController.js
+// LOGOUT USER
 exports.logout = (req, res) => {
   req.session.destroy(err => {
     if (err) {
@@ -67,14 +59,12 @@ exports.logout = (req, res) => {
   });
 };
 
-const path = require('path');
-
-// Show Register Page
+// Show Register Form Page
 exports.showRegister = (req, res) => {
   res.sendFile(path.join(__dirname, '../views/register.html'));
 };
 
-// Show Login Page
+// Show Login Form Page
 exports.showLogin = (req, res) => {
   res.sendFile(path.join(__dirname, '../views/login.html'));
 };
