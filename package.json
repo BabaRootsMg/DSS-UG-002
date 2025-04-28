@@ -20,6 +20,7 @@
     "helmet": "^8.1.0",
     "morgan": "^1.10.0",
     "pg": "^8.15.6",
+    "sanitize-html": "^2.16.0",
     "speakeasy": "^2.0.0"
   }
 }

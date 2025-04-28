@@ -2,6 +2,7 @@
 
 const db = require('../utils/db');
 
+// CREATE a Post
 exports.createPost = async (userId, title, content) => {
   const query = `
     INSERT INTO posts (user_id, title, content)
@@ -13,6 +14,7 @@ exports.createPost = async (userId, title, content) => {
   return result.rows[0];
 };
 
+// GET all Posts
 exports.getAllPosts = async () => {
   const query = `
     SELECT posts.*, users.username
@@ -24,6 +26,7 @@ exports.getAllPosts = async () => {
   return result.rows;
 };
 
+// UPDATE a Post
 exports.updatePost = async (postId, title, content) => {
   const query = `
     UPDATE posts
@@ -36,11 +39,16 @@ exports.updatePost = async (postId, title, content) => {
   return result.rows[0];
 };
 
+// DELETE a Post
 exports.deletePost = async (postId) => {
-  const query = `DELETE FROM posts WHERE id = $1`;
+  const query = `
+    DELETE FROM posts
+    WHERE id = $1
+  `;
   await db.query(query, [postId]);
 };
 
+// SEARCH Posts by keyword
 exports.searchPosts = async (keyword) => {
   const query = `
     SELECT posts.*, users.username
