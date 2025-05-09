@@ -1,66 +1,137 @@
 // controllers/postController.js
 
-const postModel = require('../models/postModel');
+const postModel    = require('../models/postModel');
 const sanitizeHtml = require('sanitize-html');
 
-// CREATE POST
-exports.createPost = async (req, res) => {
+// GET /posts
+exports.getAllPosts = async (req, res, next) => {
   try {
-    const { title, content } = req.body;
-    const sanitizedContent = sanitizeHtml(content);
-
-    const post = await postModel.createPost(req.session.userId, title, sanitizedContent);
-    res.status(201).json(post);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error creating post');
+    const rows = await postModel.getAllPosts();
+    // normalize field names for the template
+    const posts = rows.map(p => ({
+      id:        p.id,
+      title:     p.title,
+      content:   p.content,
+      username:  p.username,   // now matches model alias
+      timestamp: p.timestamp   // now matches model alias
+    }));
+    res.render('posts', {
+      user:  req.user,
+      posts
+    });
+  } catch (err) {
+    next(err);
   }
 };
 
-// GET ALL POSTS
-exports.getAllPosts = async (req, res) => {
+// GET /posts/my
+exports.getMyPosts = async (req, res, next) => {
   try {
-    const posts = await postModel.getAllPosts();
-    res.status(200).json(posts);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error fetching posts');
+    const rows = await postModel.getPostsByUser(req.user.id);
+    const userPosts = rows.map(p => ({
+      id:        p.id,
+      title:     p.title,
+      content:   p.content,
+      timestamp: p.timestamp   // now matches model alias
+    }));
+    res.render('my_posts', {
+      user:      req.user,
+      userPosts
+    });
+  } catch (err) {
+    next(err);
   }
 };
 
-// UPDATE POST
-exports.updatePost = async (req, res) => {
-  try {
-    const { title, content } = req.body;
-    const sanitizedContent = sanitizeHtml(content);
+// Show Create Post form (GET /posts/new)
+exports.showCreateForm = (req, res) => {
+  res.render('createPost', {
+    error:     null,
+    csrfToken: req.csrfToken()
+  });
+};
 
-    const post = await postModel.updatePost(req.params.id, title, sanitizedContent);
-    res.status(200).json(post);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error updating post');
+// Handle Create Post (POST /posts)
+exports.createPost = async (req, res, next) => {
+  let { title, content } = req.body;
+  if (!title || !content) {
+    return res.render('createPost', {
+      error:     'Title and content are required.',
+      csrfToken: req.csrfToken()
+    });
+  }
+
+  // Sanitize title and content against XSS
+  const cleanTitle   = sanitizeHtml(title,   { allowedTags: [], allowedAttributes: {} });
+  const cleanContent = sanitizeHtml(content, { allowedTags: sanitizeHtml.defaults.allowedTags, allowedAttributes: sanitizeHtml.defaults.allowedAttributes });
+
+  try {
+    await postModel.createPost(req.user.id, cleanTitle, cleanContent);
+    // Redirect back to "My Posts" for consistency
+    res.redirect('/posts/my');
+  } catch (err) {
+    next(err);
   }
 };
 
-// DELETE POST
-exports.deletePost = async (req, res) => {
+// Show Edit Post form (GET /posts/:id/edit)
+exports.showEditForm = async (req, res, next) => {
+  try {
+    const p = await postModel.getPostById(req.params.id);
+    res.render('editPost', {
+      error:     null,
+      post:      p,
+      csrfToken: req.csrfToken()
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Handle Update Post (POST /posts/:id)
+exports.updatePost = async (req, res, next) => {
+  let { title, content } = req.body;
+
+  // Sanitize both title and content
+  const cleanTitle   = sanitizeHtml(title,   { allowedTags: [], allowedAttributes: {} });
+  const cleanContent = sanitizeHtml(content, { allowedTags: sanitizeHtml.defaults.allowedTags, allowedAttributes: sanitizeHtml.defaults.allowedAttributes });
+
+  try {
+    await postModel.updatePost(req.params.id, cleanTitle, cleanContent);
+    // Redirect back to "My Posts"
+    res.redirect('/posts/my');
+  } catch (err) {
+    next(err);
+  }
+};
+
+// Handle Delete Post (POST /posts/:id/delete)
+exports.deletePost = async (req, res, next) => {
   try {
     await postModel.deletePost(req.params.id);
-    res.sendStatus(204); // No Content
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error deleting post');
+    // Redirect back to "My Posts"
+    res.redirect('/posts/my');
+  } catch (err) {
+    next(err);
   }
 };
 
-// SEARCH POSTS
-exports.searchPosts = async (req, res) => {
+// Handle Search Posts (GET /posts/search?keyword=…)
+exports.searchPosts = async (req, res, next) => {
   try {
-    const { keyword } = req.query;
-    const posts = await postModel.searchPosts(keyword);
-    res.status(200).json(posts);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Error searching posts');
+    const rows = await postModel.searchPosts(req.query.keyword || '');
+    const posts = rows.map(p => ({
+      id:        p.id,
+      title:     p.title,
+      content:   p.content,
+      username:  p.username,
+      timestamp: p.timestamp
+    }));
+    res.render('posts', {
+      user:  req.user,
+      posts
+    });
+  } catch (err) {
+    next(err);
   }
 };

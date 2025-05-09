@@ -1,17 +1,32 @@
 // routes/postRoutes.js
 
 const express = require('express');
-const router = express.Router();
-const postController = require('../controllers/postController');
+const router  = express.Router();
+const post    = require('../controllers/postController');
 const { isAuthenticated } = require('../middleware/authMiddleware');
 
-// CRUD endpoints
-router.post('/posts', isAuthenticated, postController.createPost);
-router.get('/posts', postController.getAllPosts);
-router.put('/posts/:id', isAuthenticated, postController.updatePost);
-router.delete('/posts/:id', isAuthenticated, postController.deletePost);
+// All latest posts
+router.get('/', isAuthenticated, post.getAllPosts);
 
-// Search endpoint
-router.get('/posts/search', postController.searchPosts);
+// My posts
+router.get('/my', isAuthenticated, post.getMyPosts);
+
+// New‐post form
+router.get('/new', isAuthenticated, post.showCreateForm);
+
+// Create post
+router.post('/', isAuthenticated, post.createPost);
+
+// Edit form
+router.get('/:id/edit', isAuthenticated, post.showEditForm);
+
+// Update post
+router.post('/:id', isAuthenticated, post.updatePost);
+
+// Delete post
+router.post('/:id/delete', isAuthenticated, post.deletePost);
+
+// (Optional) Search
+router.get('/search', isAuthenticated, post.searchPosts);
 
 module.exports = router;

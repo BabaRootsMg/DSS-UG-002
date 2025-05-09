@@ -1,98 +1,116 @@
-// server.js
+require('dotenv').config();
 
-require('dotenv').config();            // 1️⃣ Load .env
-const express       = require('express');
-const session       = require('express-session');
-const csrf          = require('csurf');
-const pgSession     = require('connect-pg-simple')(session);
-const path          = require('path');
-const helmet        = require('helmet');
-const morgan        = require('morgan');
-const db            = require('./utils/db');
+const express    = require('express');
+const path       = require('path');
+const helmet     = require('helmet');
+const morgan     = require('morgan');
+const session    = require('express-session');
+const pgSession  = require('connect-pg-simple')(session);
+const csrf       = require('csurf');
+const db         = require('./utils/db');
 
 const app = express();
+const { isAuthenticated } = require('./middleware/authMiddleware');
 
 // ─── View Engine ────────────────────────────────────────────────────
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// ─── Security & Logging ─────────────────────────────────────────────
-app.use(helmet());
-app.use(morgan('dev'));
+// ─── Middleware ─────────────────────────────────────────────────────
+app.use(
+  helmet({
+    contentSecurityPolicy: false
+  })
+);
+// Add a basic Content-Security-Policy
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'"],
+      styleSrc:   ["'self'", "https://cdnjs.cloudflare.com"],
+      imgSrc:     ["'self'", "data:"],
+      connectSrc: ["'self'"],
+      fontSrc:    ["'self'", "https://cdnjs.cloudflare.com"],
+    },
+  })
+);
 
-// ─── Body Parsing & Static ──────────────────────────────────────────
+app.use(morgan('dev'));
+app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Sessions & CSRF ────────────────────────────────────────────────
-app.use(session({
-  store: new pgSession({ pool: db, tableName: 'session' }),
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    maxAge: 15 * 60 * 1000,
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    sameSite: 'lax'
-  }
-}));
+// ─── Session & CSRF ─────────────────────────────────────────────────
+app.use(
+  session({
+    store: new pgSession({ pool: db, tableName: 'session' }),
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 15 * 60 * 1000,
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production'
+    }
+  })
+);
 app.use(csrf());
 
-// ─── ROUTES ─────────────────────────────────────────────────────────
-
-// 1️⃣ Redirect the root URL → /home
-app.get('/', (req, res) => {
-  res.redirect('/home');
-});
-
-// 2️⃣ Public landing page (no auth required)
-app.get('/home', (req, res) => {
-  if (req.session.userId) {
-    return res.redirect('/auth/dashboard');
+// ─── Bootstrap `req.user`, then expose `user` & `csrfToken` to ALL templates ─
+app.use((req, res, next) => {
+  // Populate req.user from the session, so templates always see it
+  if (req.session.userId && req.session.username) {
+    req.user = {
+      id:       req.session.userId,
+      username: req.session.username
+    };
   }
-  res.render('home'); // make sure views/home.ejs exists
+  res.locals.user      = req.user || null;
+  res.locals.csrfToken = req.csrfToken();
+  next();
 });
 
-// 3️⃣ Auth routes (login, register, verify, dashboard, logout)
-app.use('/auth', require('./routes/authRoutes'));
+// ─── Root redirect ──────────────────────────────────────────────────
+app.get('/', (req, res) => {
+  if (req.user) return res.redirect('/dashboard');
+  res.redirect('/login');
+});
 
-// 4️⃣ Post routes under /posts
+// ─── Dashboard ──────────────────────────────────────────────────────
+app.get('/dashboard', isAuthenticated, (req, res) => {
+  res.render('dashboard');
+});
+
+// ─── Auth routes ────────────────────────────────────────────────────
+app.use('/', require('./routes/authRoutes'));
+
+// ─── Post routes ────────────────────────────────────────────────────
 app.use('/posts', require('./routes/postRoutes'));
 
-// 5️⃣ Optional DB test endpoint
-app.get('/db-test', async (req, res, next) => {
-  try {
-    const { rows } = await db.query('SELECT NOW()');
-    res.json({ now: rows[0].now });
-  } catch (err) {
-    next(err);
-  }
+// ─── Legacy redirect ────────────────────────────────────────────────
+app.get('/my-posts', isAuthenticated, (req, res) => {
+  res.redirect(301, '/posts/my');
 });
 
-// ─── ERROR HANDLING ─────────────────────────────────────────────────
-
-// CSRF errors → 403
+// ─── Error handling ─────────────────────────────────────────────────
+// CSRF errors
 app.use((err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN') {
     return res.status(403).send('Invalid CSRF token');
   }
   next(err);
 });
-
-// 404 fallback
-app.use((req, res) => {
-  res.status(404).send('Not Found');
-});
-
-// 500 global error handler
+// 404
+app.use((req, res) => res.status(404).send('Page not found'));
+// 500
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something went wrong');
 });
 
-// ─── START SERVER ───────────────────────────────────────────────────
+// ─── Start server ───────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);

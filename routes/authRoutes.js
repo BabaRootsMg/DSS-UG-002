@@ -1,18 +1,21 @@
 const express = require('express');
-const router = express.Router();
-const authController = require('../controllers/authController');
+const router  = express.Router();
+const auth    = require('../controllers/authController');
 const { isAuthenticated } = require('../middleware/authMiddleware');
 
-// GET pages
-router.get('/register', authController.showRegister);
-router.get('/login', authController.showLogin);
-router.get('/dashboard', isAuthenticated, authController.dashboard);
-router.get('/logout', authController.logout);
+// Show registration & login forms
+router.get('/register', auth.showRegister);
+router.get('/login',    auth.showLogin);
 
-// POST actions
-router.post('/register', authController.registerUser);
-router.post('/login', authController.loginUser);
-router.post('/verify', authController.verify2FA);
+// (Optional) Show 2FA verify form if you have one
+router.get('/verify', isAuthenticated, auth.showVerify);
 
+// Handle submissions
+router.post('/register', auth.registerUser);
+router.post('/login',    auth.loginUser);
+router.post('/verify',   auth.verify2FA);
+
+// Secure logout via POST
+router.post('/logout', isAuthenticated, auth.logout);
 
 module.exports = router;

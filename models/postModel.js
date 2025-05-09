@@ -1,63 +1,93 @@
-// models/postModel.js
-
 const db = require('../utils/db');
 
-// CREATE a Post
+// Create a new post
 exports.createPost = async (userId, title, content) => {
-  const query = `
-    INSERT INTO posts (user_id, title, content)
-    VALUES ($1, $2, $3)
-    RETURNING *
-  `;
-  const values = [userId, title, content];
-  const result = await db.query(query, values);
+  const result = await db.query(
+    `INSERT INTO posts (user_id, title, content)
+     VALUES ($1, $2, $3)
+     RETURNING id, title, content, created_at AS timestamp`,
+    [userId, title, content]
+  );
   return result.rows[0];
 };
 
-// GET all Posts
+// Get all posts
 exports.getAllPosts = async () => {
-  const query = `
-    SELECT posts.id, posts.title, posts.content, posts.created_at, users.username
-    FROM posts
-    JOIN users ON posts.user_id = users.id
-    ORDER BY posts.created_at DESC
-  `;
-  const result = await db.query(query);
+  const result = await db.query(
+    `SELECT p.id,
+            p.title,
+            p.content,
+            p.created_at AS timestamp,
+            u.name        AS username
+     FROM posts p
+     JOIN users u ON p.user_id = u.id
+     ORDER BY p.created_at DESC`
+  );
   return result.rows;
 };
 
-// UPDATE a Post
-exports.updatePost = async (postId, title, content) => {
-  const query = `
-    UPDATE posts
-    SET title = $1, content = $2, updated_at = NOW()
-    WHERE id = $3
-    RETURNING *
-  `;
-  const values = [title, content, postId];
-  const result = await db.query(query, values);
+// Fetch a single post by ID
+exports.getPostById = async (postId) => {
+  const result = await db.query(
+    `SELECT p.id,
+            p.title,
+            p.content,
+            p.created_at AS timestamp,
+            u.name        AS username
+     FROM posts p
+     JOIN users u ON p.user_id = u.id
+     WHERE p.id = $1`,
+    [postId]
+  );
   return result.rows[0];
 };
 
-// DELETE a Post
-exports.deletePost = async (postId) => {
-  const query = `
-    DELETE FROM posts
-    WHERE id = $1
-  `;
-  await db.query(query, [postId]);
+// Update a post
+exports.updatePost = async (postId, title, content) => {
+  const result = await db.query(
+    `UPDATE posts
+     SET title = $1,
+         content = $2
+     WHERE id = $3
+     RETURNING id, title, content, created_at AS timestamp`,
+    [title, content, postId]
+  );
+  return result.rows[0];
 };
 
-// SEARCH Posts by keyword (ILIKE for case-insensitive)
+// Delete a post
+exports.deletePost = async (postId) => {
+  await db.query(`DELETE FROM posts WHERE id = $1`, [postId]);
+};
+
+// Search posts by keyword
 exports.searchPosts = async (keyword) => {
-  const query = `
-    SELECT posts.id, posts.title, posts.content, posts.created_at, users.username
-    FROM posts
-    JOIN users ON posts.user_id = users.id
-    WHERE posts.title ILIKE $1 OR posts.content ILIKE $1
-    ORDER BY posts.created_at DESC
-  `;
-  const values = [`%${keyword}%`];
-  const result = await db.query(query, values);
+  const term = `%${keyword}%`;
+  const result = await db.query(
+    `SELECT p.id,
+            p.title,
+            p.content,
+            p.created_at AS timestamp,
+            u.name        AS username
+     FROM posts p
+     JOIN users u ON p.user_id = u.id
+     WHERE p.title ILIKE $1 OR p.content ILIKE $1`,
+    [term]
+  );
+  return result.rows;
+};
+
+// Fetch all posts for a specific user
+exports.getPostsByUser = async (userId) => {
+  const result = await db.query(
+    `SELECT id,
+            title,
+            content,
+            created_at AS timestamp
+     FROM posts
+     WHERE user_id = $1
+     ORDER BY created_at DESC`,
+    [userId]
+  );
   return result.rows;
 };
