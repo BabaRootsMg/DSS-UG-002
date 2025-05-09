@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Latest Posts – Foodies 'R' Us</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <script src="/js/posts.js" defer></script>
+</head>
+<body>
+  <header>
+    <a href="/dashboard">
+      <img id="logo" src="/imgs/logo.png" alt="Logo">
+    </a>
+    <h1>Foodies 'R' Us</h1>
+    <div class="dropdown">
+      <div id="login_link">
+        <%= user.username %> <i class="fa fa-caret-down"></i>
+      </div>
+      <div class="dropdown-content">
+        <form action="/logout" method="POST">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button>Log out</button>
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <ul>
+      <li><a href="/dashboard">Home</a></li>
+      <li class="active"><a href="/posts">Latest Posts</a></li>
+      <li><a href="/posts/my">My Posts</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <section id="postsList">
+      <h2>Latest Foodie Posts</h2>
+      <i class="fa fa-search" aria-hidden="true"></i>
+      <input id="search" class="search_bar" placeholder="Search posts…">
+    </section>
+
+    <div id="postsContainer">
+      <% if (posts.length === 0) { %>
+        <p>No posts yet—be the first to <a href="/posts/new">write one</a>!</p>
+      <% } else { %>
+        <% posts.forEach(post => { %>
+          <article>
+            <h3><%= post.title %></h3>
+            <p><small>By <%= post.username %> on <%= post.timestamp %></small></p>
+            <div><%= post.content %></div>
+          </article>
+        <% }) %>
+      <% } %>
+    </div>
+  </main>
+</body>
+</html>

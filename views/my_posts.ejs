@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>My Posts – Foodies 'R' Us</title>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <script src="/js/my_posts.js" defer></script>
+</head>
+<body>
+  <header>
+    <a href="/dashboard">
+      <img id="logo" src="/imgs/logo.png" alt="Logo">
+    </a>
+    <h1>Foodies 'R' Us</h1>
+    <div class="dropdown">
+      <div id="login_link">
+        <%= user.username %> <i class="fa fa-caret-down"></i>
+      </div>
+      <div class="dropdown-content">
+        <form action="/logout" method="POST">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button type="submit">Log out</button>
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <ul>
+      <li><a href="/dashboard">Home</a></li>
+      <li><a href="/posts">Latest Posts</a></li>
+      <li class="active"><a href="/posts/my">My Posts</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <section class="new-post">
+        <h2>Share your thoughts</h2>
+        <form id="postForm" action="/posts" method="POST">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="postId" id="postId" value="">
+
+        <label for="title">Post Title:</label>
+        <input id="title" name="title" type="text" placeholder="Title" required>
+
+        <label for="content">Post Content:</label>
+        <textarea id="content" name="content" placeholder="Write your thoughts here…" required></textarea>
+
+        <button type="submit" id="post_button">Publish</button>
+      </form>
+    </section>
+
+    <section id="myPosts">
+      <h2>Your Posts</h2>
+      <i class="fa fa-search" aria-hidden="true"></i>
+      <input id="searchMine" class="search_bar" type="text" placeholder="Search your posts…">
+
+      <div id="postsContainer">
+        <% if (userPosts.length === 0) { %>
+          <p>You haven’t written any posts yet. <a href="/posts/new">Write one now!</a></p>
+        <% } else { %>
+          <% userPosts.forEach(post => { %>
+            <article data-id="<%= post.id %>">
+              <h3><%= post.title %></h3>
+              <small><%= post.timestamp %></small>
+              <div><%= post.content %></div>
+              <button class="edit">Edit</button>
+              <form action="/posts/<%= post.id %>/delete" method="POST" style="display:inline">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button>Delete</button>
+              </form>
+            </article>
+          <% }) %>
+        <% } %>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
