@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1) Search/filter your posts
+    //  Search/filter your posts
     const searchMine = document.getElementById('searchMine');
     if (searchMine) {
       searchMine.addEventListener('keyup', () => {
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   
-    // 2) Wire up Edit buttons
+    // Wire up Edit buttons
     document.querySelectorAll('button.edit').forEach(btn => {
       btn.addEventListener('click', e => {
         const article = e.target.closest('article');

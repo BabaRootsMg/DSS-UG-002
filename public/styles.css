@@ -219,7 +219,7 @@ body {
         background-color:lightgray;
       }
     
-      /*************** POST STYLING ***************/
+  
 
       .post {
         background-color: white;
@@ -234,7 +234,6 @@ body {
         height: 30px;
         display: inline-block;
         font-size: 14px;
-        /* marg in: 20px; */
         border-radius: 3px;
         border: 2px solid #c74402;
         font-size: 20px;
@@ -260,7 +259,7 @@ body {
         margin: 5px;
       }
 
-/*************** FORM STYLING ***************/
+
 
 label {
     font-weight: bold;
@@ -366,7 +365,6 @@ legend{
     background-color: #f2875c;
 }
 
-/* ===== My Posts form styling ===== */
 .new-post,
 section.new-post {
   max-width: 600px;

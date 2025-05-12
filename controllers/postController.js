@@ -32,7 +32,7 @@ exports.getMyPosts = async (req, res, next) => {
       id:        p.id,
       title:     p.title,
       content:   p.content,
-      timestamp: p.timestamp   // now matches model alias
+      timestamp: p.timestamp  
     }));
     res.render('my_posts', {
       user:      req.user,

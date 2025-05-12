@@ -12,11 +12,11 @@ const db         = require('./utils/db');
 const app = express();
 const { isAuthenticated } = require('./middleware/authMiddleware');
 
-// ─── View Engine ────────────────────────────────────────────────────
+// View Engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// ─── Middleware ─────────────────────────────────────────────────────
+// Middleware
 app.use(
   helmet({
     contentSecurityPolicy: false
@@ -41,7 +41,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Session & CSRF ─────────────────────────────────────────────────
+// Session and CSRF
 app.use(
   session({
     store: new pgSession({ pool: db, tableName: 'session' }),
@@ -58,7 +58,7 @@ app.use(
 );
 app.use(csrf());
 
-// ─── Bootstrap `req.user`, then expose `user` & `csrfToken` to ALL templates ─
+// Bootstrap `req.user`, then expose `user` & `csrfToken` to ALL templates 
 app.use((req, res, next) => {
   // Populate req.user from the session, so templates always see it
   if (req.session.userId && req.session.username) {
@@ -72,29 +72,29 @@ app.use((req, res, next) => {
   next();
 });
 
-// ─── Root redirect ──────────────────────────────────────────────────
+// Root & redirect
 app.get('/', (req, res) => {
   if (req.user) return res.redirect('/dashboard');
   res.redirect('/login');
 });
 
-// ─── Dashboard ──────────────────────────────────────────────────────
+// Dashboard view
 app.get('/dashboard', isAuthenticated, (req, res) => {
   res.render('dashboard');
 });
 
-// ─── Auth routes ────────────────────────────────────────────────────
+// Auth Routes
 app.use('/', require('./routes/authRoutes'));
 
-// ─── Post routes ────────────────────────────────────────────────────
+// Post Routes
 app.use('/posts', require('./routes/postRoutes'));
 
-// ─── Legacy redirect ────────────────────────────────────────────────
+// Legacy Redirect
 app.get('/my-posts', isAuthenticated, (req, res) => {
   res.redirect(301, '/posts/my');
 });
 
-// ─── Error handling ─────────────────────────────────────────────────
+// Error Handling
 // CSRF errors
 app.use((err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN') {
@@ -110,7 +110,7 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something went wrong');
 });
 
-// ─── Start server ───────────────────────────────────────────────────
+// Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
