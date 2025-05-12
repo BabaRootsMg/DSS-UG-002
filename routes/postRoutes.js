@@ -26,7 +26,7 @@ router.post('/:id', isAuthenticated, post.updatePost);
 // Delete post
 router.post('/:id/delete', isAuthenticated, post.deletePost);
 
-// (Optional) Search
+// Search post
 router.get('/search', isAuthenticated, post.searchPosts);
 
 module.exports = router;

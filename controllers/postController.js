@@ -12,8 +12,8 @@ exports.getAllPosts = async (req, res, next) => {
       id:        p.id,
       title:     p.title,
       content:   p.content,
-      username:  p.username,   // now matches model alias
-      timestamp: p.timestamp   // now matches model alias
+      username:  p.username,   
+      timestamp: p.timestamp   
     }));
     res.render('posts', {
       user:  req.user,

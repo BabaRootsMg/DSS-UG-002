@@ -1,4 +1,6 @@
 // utils/hashing.js
+
+// Salts passwords using bcrypt library 
 const bcrypt = require('bcrypt');
 
 async function hashPassword(password) {

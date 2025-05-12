@@ -7,7 +7,7 @@ const { isAuthenticated } = require('../middleware/authMiddleware');
 router.get('/register', auth.showRegister);
 router.get('/login',    auth.showLogin);
 
-// (Optional) Show 2FA verify form if you have one
+// Show 2FA verify form
 router.get('/verify', isAuthenticated, auth.showVerify);
 
 // Handle submissions
