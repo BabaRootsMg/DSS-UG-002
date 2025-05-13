@@ -22,6 +22,9 @@ app.use(
     contentSecurityPolicy: false
   })
 );
+
+
+
 // Add a basic Content-Security-Policy
 app.use(
   helmet.contentSecurityPolicy({
@@ -111,7 +114,7 @@ app.use((err, req, res, next) => {
 });
 
 // Start the server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
 });

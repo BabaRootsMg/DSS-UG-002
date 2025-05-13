@@ -10,7 +10,7 @@ const loginCodes = {};
 // Hard-coded admin user (bypasses 2FA)
 const adminUser = {
   email:    'admin@secureblog.local',
-  password: 'AdminPass123',   // In prod you’d hash this!
+  password: 'AdminPass123',   
   name:     'Administrator'
 };
 
@@ -38,7 +38,7 @@ exports.registerUser = async (req, res) => {
   } catch (err) {
     console.error('✖ registerUser error:', err);
     let msg = err.code === '23505'
-      ? 'That email is already registered.'
+      ? 'Unable to register User.'
       : `Error: ${err.message || 'Unexpected registration error.'}`;
 
     return res.render('register', {
@@ -63,7 +63,7 @@ exports.loginUser = async (req, res) => {
   // Admin bypass
   if (email === adminUser.email && password === adminUser.password) {
     req.session.userId   = 'admin';
-    req.session.username = adminUser.name;  // <— store under .username
+    req.session.username = adminUser.name; 
     return res.redirect('/dashboard');
   }
 
