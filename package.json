@@ -1,35 +1,23 @@
 {
-  "name": "dss-ug-002",
+  "name": "secure-blog",
   "version": "1.0.0",
-  "description": "",
+  "description": "A secure Node.js blog with email-based 2FA",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "connect-pg-simple": "^10.0.0",
+    "bcrypt": "^5.1.1",
+    "connect-pg-simple": "^8.0.0",
     "csurf": "^1.11.0",
     "dotenv": "^16.5.0",
-    "express": "^5.1.0",
-    "express-session": "^1.18.1",
-    "pg": "^8.15.6",
+    "ejs": "^3.1.8",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "helmet": "^6.0.1",
+    "morgan": "^1.10.0",
+    "nodemailer": "^6.9.1",
+    "pg": "^8.8.0",
     "sanitize-html": "^2.16.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/BabaRootsMg/DSS-UG-002.git"
-  },
-  "bugs": {
-    "url": "https://github.com/BabaRootsMg/DSS-UG-002/issues"
-  },
-  "homepage": "https://github.com/BabaRootsMg/DSS-UG-002#readme",
-  "devDependencies": {
-    "jest": "^29.7.0",
-    "nodemon": "^3.1.10",
-    "supertest": "^7.1.0"
   }
 }

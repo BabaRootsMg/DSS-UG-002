@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard – Foodies 'R' Us</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header>
+    <a href="/dashboard">
+      <img id="logo" src="/imgs/logo.png" alt="Logo">
+    </a>
+    <h1>Foodies 'R' Us</h1>
+    <div class="dropdown">
+      <div id="login_link">
+        <%= user.username %> <i class="fa fa-caret-down"></i>
+      </div>
+      <div class="dropdown-content">
+        <form action="/logout" method="POST">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <button id="logout_btn">Log out</button>
+        </form>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <ul>
+      <li class="active"><a href="/dashboard">Home</a></li>
+      <li><a href="/posts">Latest Posts</a></li>
+      <li><a href="/posts/my">My Posts</a></li>
+    </ul>
+  </nav>
+
+  <main>
+    <section>
+      <h2>Feel like sharing?</h2>
+      <p><a class="link_btn" href="/posts/new">Make a Post</a></p>
+    </section>
+
+    <section id="postsList">
+      <h2>Latest Foodie Posts</h2>
+      <p><a class="link_btn" href="/posts">See More Posts</a></p>
+    </section>
+  </main>
+</body>
+</html>

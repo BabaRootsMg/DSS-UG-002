@@ -1,99 +1,120 @@
-// server.js
 require('dotenv').config();
-const express       = require('express');
-const session       = require('express-session');
-const csrf          = require('csurf');
-const pgSession     = require('connect-pg-simple')(session);
-const path          = require('path');
-const helmet        = require('helmet');
-const morgan        = require('morgan');
-const db            = require('./utils/db'); // see utils/db.js below
+
+const express    = require('express');
+const path       = require('path');
+const helmet     = require('helmet');
+const morgan     = require('morgan');
+const session    = require('express-session');
+const pgSession  = require('connect-pg-simple')(session);
+const csrf       = require('csurf');
+const db         = require('./utils/db');
 
 const app = express();
+const { isAuthenticated } = require('./middleware/authMiddleware');
 
-// If you're behind a proxy (e.g. in production), trust it for secure cookies
-if (process.env.NODE_ENV === 'production') {
-  app.set('trust proxy', 1);
-}
+// View Engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
-// ─── Global Middleware ──────────────────────────────────────────────
+// Middleware
+app.use(
+  helmet({
+    contentSecurityPolicy: false
+  })
+);
 
-// Security headers
-app.use(helmet());
 
-// HTTP request logging
+
+// Add a basic Content-Security-Policy
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc:  ["'self'"],
+      styleSrc:   ["'self'", "https://cdnjs.cloudflare.com"],
+      imgSrc:     ["'self'", "data:"],
+      connectSrc: ["'self'"],
+      fontSrc:    ["'self'", "https://cdnjs.cloudflare.com"],
+    },
+  })
+);
+
 app.use(morgan('dev'));
-
-// Parse JSON and urlencoded form bodies
+app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Serve static assets from /public
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Session + CSRF Middleware ──────────────────────────────────────
-
-app.use(session({
-  store: new pgSession({
-    pool: db,               // your pg Pool
-    tableName: 'session'    // defaults to 'session'
-  }),
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    maxAge: 1000 * 60 * 15,         // 15 minutes
-    secure: process.env.NODE_ENV === 'production', // only over HTTPS in prod
-    httpOnly: true,                 // no client-side JS access
-    sameSite: 'lax'                 // helps mitigate CSRF
-  }
-}));
-
-// initialize CSRF protection
+// Session and CSRF
+app.use(
+  session({
+    store: new pgSession({ pool: db, tableName: 'session' }),
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 15 * 60 * 1000,
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production'
+    }
+  })
+);
 app.use(csrf());
 
-// ─── Routes ─────────────────────────────────────────────────────────
-
-// Health check
-app.get('/', (req, res) => {
-  res.send(`📝 Blog backend up and running — your CSRF token is: ${req.csrfToken()}`);
-});
-
-// Quick DB-connect test
-app.get('/db-test', async (req, res, next) => {
-  try {
-    const { rows } = await db.query('SELECT NOW()');
-    res.json({ now: rows[0].now });
-  } catch (err) {
-    next(err);
+// Bootstrap `req.user`, then expose `user` & `csrfToken` to ALL templates 
+app.use((req, res, next) => {
+  // Populate req.user from the session, so templates always see it
+  if (req.session.userId && req.session.username) {
+    req.user = {
+      id:       req.session.userId,
+      username: req.session.username
+    };
   }
+  res.locals.user      = req.user || null;
+  res.locals.csrfToken = req.csrfToken();
+  next();
 });
 
-// (Here is where you’ll mount your routes for /posts, /auth, etc.)
+// Root & redirect
+app.get('/', (req, res) => {
+  if (req.user) return res.redirect('/dashboard');
+  res.redirect('/login');
+});
 
-// ─── 404 & Error Handling ───────────────────────────────────────────
+// Dashboard view
+app.get('/dashboard', isAuthenticated, (req, res) => {
+  res.render('dashboard');
+});
 
-// CSRF token errors — respond with 403
+// Auth Routes
+app.use('/', require('./routes/authRoutes'));
+
+// Post Routes
+app.use('/posts', require('./routes/postRoutes'));
+
+// Legacy Redirect
+app.get('/my-posts', isAuthenticated, (req, res) => {
+  res.redirect(301, '/posts/my');
+});
+
+// Error Handling
+// CSRF errors
 app.use((err, req, res, next) => {
   if (err.code === 'EBADCSRFTOKEN') {
     return res.status(403).send('Invalid CSRF token');
   }
   next(err);
 });
-
-// 404 for anything else
-app.use((req, res) => {
-  res.status(404).send('Not Found');
-});
-
-// Global error handler
+// 404
+app.use((req, res) => res.status(404).send('Page not found'));
+// 500
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something went wrong');
 });
 
-// ─── Start Server ───────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () =>
-  console.log(`Server listening on http://localhost:${PORT}`)
-);
+// Start the server
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`Server listening on http://localhost:${PORT}`);
+});
