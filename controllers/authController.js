@@ -14,6 +14,23 @@ const adminUser = {
   name:     'Administrator'
 };
 
+// Dummy bcrypt hash for timing padding (bcrypt hash of arbitrary string)
+const DUMMY_HASH = process.env.DUMMY_HASH
+  || '$2b$10$eImiTXuWVxfM37uY4JANjQ==xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+
+// Minimum time (ms) we want /login to take end-to-end
+const MIN_LOGIN_TIME_MS = parseInt(process.env.MIN_LOGIN_TIME_MS || '2000', 10);
+
+// Helper to pad the response out to MIN_LOGIN_TIME_MS
+function delayResponse(start) {
+  const elapsed = Date.now() - start;
+  const wait    = MIN_LOGIN_TIME_MS - elapsed;
+  if (wait > 0) {
+    return new Promise(resolve => setTimeout(resolve, wait));
+  }
+  return Promise.resolve();
+}
+
 // Show Register Form
 exports.showRegister = (req, res) => {
   res.render('register', {
@@ -58,18 +75,26 @@ exports.showLogin = (req, res) => {
 
 // Handle Login (Step 1)
 exports.loginUser = async (req, res) => {
+  const start = Date.now();
   const { email, password } = req.body;
 
   // Admin bypass
   if (email === adminUser.email && password === adminUser.password) {
     req.session.userId   = 'admin';
     req.session.username = adminUser.name; 
+    await delayResponse(start);
     return res.redirect('/dashboard');
   }
 
   // Lookup user
   const user = await userModel.findUserByEmail(email);
-  if (!user || !(await comparePasswords(password, user.password))) {
+
+  // Always compare against a real bcrypt hash, even on “no user”
+  const hashToCheck = user ? user.password : DUMMY_HASH;
+  const passwordMatches = await comparePasswords(password, hashToCheck);
+
+  if (!user || !passwordMatches) {
+    await delayResponse(start);
     return res.render('login', {
       csrfToken: req.csrfToken(),
       error:     'Invalid email or password.'
@@ -92,6 +117,10 @@ exports.loginUser = async (req, res) => {
       text:    `Your login code is: ${code}`
     });
 
+    // Store pending email for verification step
+    req.session.pendingEmail = email;
+
+    await delayResponse(start);
     return res.render('verify', {
       csrfToken: req.csrfToken(),
       email,
@@ -100,6 +129,7 @@ exports.loginUser = async (req, res) => {
 
   } catch (err) {
     console.error('✖ 2FA email send error:', err);
+    await delayResponse(start);
     return res.render('login', {
       csrfToken: req.csrfToken(),
       error:     'Could not send verification email.'
@@ -147,9 +177,8 @@ exports.verify2FA = async (req, res) => {
   return res.redirect('/dashboard');
 };
 
-// Add this at the bottom, after verify2FA:
+// Show Verify Form (Step 1 → 2)
 exports.showVerify = (req, res) => {
-  // Retrieve pending email from session
   const email = req.session.pendingEmail;
   if (!email) {
     return res.redirect('/login');
