@@ -3,6 +3,8 @@
 const { hashPassword, comparePasswords } = require('../utils/hashing');
 const userModel   = require('../models/userModel');
 const transporter = require('../utils/email');
+const zxcvbn = require('zxcvbn');
+
 
 // In-memory store: email → { code, expiresAt }
 const loginCodes = {};
@@ -20,6 +22,11 @@ const DUMMY_HASH = process.env.DUMMY_HASH
 
 // Minimum time (ms) we want /login to take end-to-end
 const MIN_LOGIN_TIME_MS = parseInt(process.env.MIN_LOGIN_TIME_MS || '2000', 10);
+function isStrongPassword(password) {
+    const result = zxcvbn(password);
+    // zxcvbn score ranges from 0 (very weak) to 4 (very strong)
+    return result.score >= 3; // Require at least 'good' strength
+}
 
 // Helper to pad the response out to MIN_LOGIN_TIME_MS
 function delayResponse(start) {
@@ -43,17 +50,26 @@ exports.showRegister = (req, res) => {
 exports.registerUser = async (req, res) => {
   const { name, email, password } = req.body;
   console.log('→ Incoming register:', { name, email });
+  
+  // weak password prevention
+  if (!isStrongPassword(password)) {
+    return res.render('register', {
+      csrfToken: req.csrfToken(),
+      error: 'Password is too weak. Please choose a stronger password with at least 12 characters, a mix of uppercase, lowercase, numbers, and special characters.'
+    });
+  }
+  
   try {
     const hashed  = await hashPassword(password);
     const newUser = await userModel.createUser(name, email, hashed);
 
     // Log in immediately
     req.session.userId   = newUser.id;
-    req.session.username = newUser.name;   // <— store under .username
+    req.session.username = newUser.name;   
     return res.redirect('/dashboard');
 
   } catch (err) {
-    console.error('✖ registerUser error:', err);
+    console.error(' registerUser error:', err);
     let msg = err.code === '23505'
       ? 'Unable to register User.'
       : `Error: ${err.message || 'Unexpected registration error.'}`;
@@ -105,7 +121,7 @@ exports.loginUser = async (req, res) => {
   const code = Math.floor(100000 + Math.random() * 900000);
   loginCodes[email] = {
     code,
-    expiresAt: Date.now() + 5 * 60 * 1000  // valid for 5 minutes
+    expiresAt: Date.now() + 5 * 60 * 1000  // expiresevery 5 minutes
   };
 
   // Send via email
