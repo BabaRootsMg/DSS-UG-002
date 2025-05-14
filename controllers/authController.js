@@ -142,7 +142,7 @@ exports.verify2FA = async (req, res) => {
   delete loginCodes[email];
   const user = await userModel.findUserByEmail(email);
   req.session.userId   = user ? user.id : 'admin';
-  req.session.username = user ? user.name : adminUser.name;  // <— use user.name
+  req.session.username = user ? user.name : adminUser.name;  
 
   return res.redirect('/dashboard');
 };
@@ -167,7 +167,7 @@ exports.dashboard = (req, res) => {
     return res.redirect('/login');
   }
   res.render('dashboard', {
-    username: req.session.username   // <— reads the same key we set above
+    username: req.session.username   
   });
 };
 
