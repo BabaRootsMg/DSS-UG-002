@@ -14,8 +14,8 @@ import assert from 'assert';
 
   // 1. Victim logs in
   await victimPage.goto('http://localhost:3000/login');
-  await victimPage.type('input[name="email"]', 'alice@x.com');
-  await victimPage.type('input[name="password"]', 'correcthorsebatterystaple');
+  await victimPage.type('input[name="email"]', 'Christiancab137@gmail.com');
+  await victimPage.type('input[name="password"]', 'password987');
   await Promise.all([
     victimPage.click('button[type="submit"]'),
     victimPage.waitForNavigation()
