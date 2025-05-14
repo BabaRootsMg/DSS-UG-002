@@ -1,6 +1,6 @@
 // npm install --save-dev puppeteer
 // run with:
-// node xssTest.js
+// node crossSiteScriptingTest.js
 
 
 

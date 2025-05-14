@@ -1,6 +1,6 @@
 // npm install --save-dev axios tough-cookie axios-cookiejar-support qs
 // run with: 
-// node csrfTest.js
+// node crossSiteRequestForgery.js
 
 
 
