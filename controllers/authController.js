@@ -1,4 +1,3 @@
-// controllers/authController.js
 
 const { hashPassword, comparePasswords } = require('../utils/hashing');
 const userModel   = require('../models/userModel');

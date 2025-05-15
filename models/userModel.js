@@ -1,6 +1,5 @@
 const db = require('../utils/db');
 
-// models/userModel.js
 exports.createUser = async (name, email, password, twofa_secret = '') => {
     const query = `
       INSERT INTO users (name, email, password, twofa_secret)

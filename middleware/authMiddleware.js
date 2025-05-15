@@ -1,6 +1,5 @@
-// middleware/authMiddleware.js
 
-// Ensure user is authenticated and populate req.user with id and username
+//Ensure user is authenticated and populate req.user with id and username
 exports.isAuthenticated = (req, res, next) => {
   if (req.session && req.session.userId && req.session.username) {
     // Attach both id and username for downstream code
@@ -13,7 +12,7 @@ exports.isAuthenticated = (req, res, next) => {
   res.redirect('/login');
 };
 
-// Get a single post by ID
+// Get asingle post by ID
 exports.getPostById = async (postId) => {
   const result = await db.query(
     `SELECT p.id,

@@ -1,9 +1,8 @@
-// controllers/postController.js
 
 const postModel    = require('../models/postModel');
 const sanitizeHtml = require('sanitize-html');
 
-// GET /posts
+//GET /posts
 exports.getAllPosts = async (req, res, next) => {
   try {
     const rows = await postModel.getAllPosts();

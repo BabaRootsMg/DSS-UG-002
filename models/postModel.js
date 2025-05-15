@@ -77,7 +77,7 @@ exports.searchPosts = async (keyword) => {
   return result.rows;
 };
 
-// Fetch all posts for a specific user
+//fetch all posts for a specific user
 exports.getPostsByUser = async (userId) => {
   const result = await db.query(
     `SELECT id,
