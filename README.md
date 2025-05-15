@@ -17,3 +17,5 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_NAME=secureblog
 DB_USER=bloguser
+
+also check your spam for any 2fa codes on login
